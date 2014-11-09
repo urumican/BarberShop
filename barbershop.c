@@ -14,6 +14,8 @@ typedef enum{ON, OFF} chair_st;
 pthreat_mutex_t wake_barber;
 pthreat_mutex_t mutex_cust;
 pthreat_cond_t condition; // I learned to use conditional variable.
+pthreat_barrier_t barrier_start;
+pthreat_barrier_t barrier_end;
 
 int chair_num = NUM_CHAIR;
 barber_st state_bar = FREE;
@@ -70,6 +72,10 @@ void* barber()
 	while(1)
 	{
 		pthread_mutex_lock(&wake_barber);
+		if(chair_nu < 5) // It mean there is someone still waiting.
+		{ 
+			pthread_unlock_unlock(&mutex_cust);
+		}
 		while(chair_num == 5) // No one's waiting in the room
 		{
 			state_bar = SLEEP;
@@ -79,14 +85,13 @@ void* barber()
 		pthread_mutex_unlock(&wake_barber);
 		
 		state_bar = WORK;
+		pthreat_barrier_wait(&barrier_start);
 		cut();
+		pthreat_barrier_wiat(barrier_end);
 		
 		state_bar = FREE;
 		//pthread_unlock_unlock(&mutex_cust);
-		if(chair_nu < 5) // It mean there is someone still waiting.
-		{ 
-			pthread_unlock_unlock(&mutex_cust);
-		}
+		
 	}
 }
 
@@ -103,9 +108,9 @@ void* custromer(void* id)
 		
 		pthread_mutex_lock(&mutex_cust);
 		
+		pthreat_barrier_wait(&barrier_start);
 		get_cut(); // Being cut.
-		
-		
+		pthreat_barrier_wiat(barrier_end);
 	}
 	else
 		printf("[Customer %d] The shop is full. I am leaving.", *ID);
