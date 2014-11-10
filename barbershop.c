@@ -1,3 +1,6 @@
+/* Barber shop concurrenct programming problem */
+/* By Xin Li at Oregon State University. */
+
 #include<stdlib.h>
 #include<stdio.h>
 #include<unistd.h>
