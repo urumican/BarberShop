@@ -9,12 +9,15 @@
 typedef enum{SLEEP, WORK, FREE} barber_st;
 typedef enum{CHECK, WAIT, READY} customer_st;
 typedef enum{ON, OFF} chair_st;
+typedef enum{DEF, UNDEF} thread_st;
 
-pthreat_mutex_t wake_barber;
-pthreat_mutex_t mutex_cust;
-pthreat_cond_t condition; // I learned to use conditional variable.
-pthreat_barrier_t barrier_start;
-pthreat_barrier_t barrier_end;
+pthread_mutex_t wake_barber;
+pthread_mutex_t mutex_cust;
+pthread_cond_t condition; // I learned to use conditional variable.
+pthread_barrier_t barrier_start;
+pthread_barrier_t barrier_end;
+pthread_t cust_thrs[50];
+thread_ts state_thrs[50];
 
 int chair_num = NUM_CHAIR;
 barber_st state_bar = FREE;
@@ -61,6 +64,22 @@ void check_cust()
 }
 
 void* customer_generator()
+{
+	while(1)
+	{
+		int sleep_time = (rand() % 3) > 0 ? (rand() % 3) : (rand() % 3 + 3);
+		sleep(sleep_time);
+		
+		do{
+			int to_activate = rand() % 50 >= 0 ? (rand() % 50) : (rand() % 50 + 50);
+		}while(state_thrs[to_activate] == DEF)
+		
+		state_thrs[to_activate] = DEF;
+		pthread(&cust_thread[to_activate]，NULL, custromer_action, (void*)&to_activate);
+		
+		
+	}
+}
 
 void cut(int ID)
 
@@ -117,6 +136,12 @@ void* custromer_action(void* id)
 
 int main(int argc, char *argv[])
 {
+	/* Initialization of threads state */
+	for(int i = 0; i < 50; i++)
+	{
+		state_thrs[i] = UNDEF;
+	}
+	
 	/* Threads definition */
 	pthread_t barber;
 	pthread_t generator;
@@ -139,6 +164,10 @@ int main(int argc, char *argv[])
 	/* threads termination */
 	pthread_join(barber, NULL);
 	pthread_join(generator, NULL);
+	for(int k = 0; k < 50; k++)
+	{
+		pthread_join(cust_thread[k]);
+	}
 	
 	/* mutex destruction */
 	pthread_mutex_destroy(&wake_barber);
@@ -148,8 +177,8 @@ int main(int argc, char *argv[])
     	pthread_cond_destroy(&condition);
     	
     	/* barrier destruction */
-    	pthread_cond_destroy(&barrier_start);
-    	pthread_cond_destroy(&barrier_end);
+    	pthread_barrier_destroy(&barrier_start);
+    	pthread_barrier_destroy(&barrier_end);
     	
     	
     	pthread_exit(NULL);
