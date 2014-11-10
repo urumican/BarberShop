@@ -20,6 +20,7 @@ pthread_t cust_thrs[10];
 //thread_ts state_thrs[50];
 
 int chair_num = NUM_CHAIR;
+int customer_ID[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 barber_st state_bar = FREE;
 //customer_st state_cust;
 //chair_st state_ch[NUM_CHAIR];
@@ -53,7 +54,7 @@ void check_barber()
 			pthread_cond_signal(&condition);
 		}
 	//	pthread_mutex_unlock(&wake_barber);
-		pthread_mutex_unlock(&mutex_cust);
+		
 		//printf("[Custermer %d] Wake up the sleeping barber.\n\n", ID);
 	}
 }
@@ -100,23 +101,30 @@ void* barber_action(void *arg)
 	while(1)
 	{
 		pthread_mutex_lock(&wake_barber);
-		if(chair_num < 5) // It mean there is someone still waiting.
-		{ 
-			pthread_mutex_unlock(&mutex_cust);
-		}
+		//if(chair_num < 5) // It mean there is someone still waiting.
+		//{ 
+		//	pthread_mutex_unlock(&mutex_cust);
+		//}
 		while(chair_num == 5) // No one's waiting in the room
 		{
 			state_bar = SLEEP;
+			printf("[Barber] Sleep \n\n");
 			pthread_cond_wait(&condition, &wake_barber);
+			printf("[Barber] Wake \n\n");
 		}
 		chair_num++;
+		printf("[Barber] Bring in one customer \n\n");
+		pthread_mutex_unlock(&mutex_cust);
+
 		pthread_mutex_unlock(&wake_barber);
 		
 		state_bar = WORK;
 		pthread_barrier_wait(&barrier_start);
+		printf("[Barber] Start cutting \n\n");
 		cut();
 		pthread_barrier_wait(&barrier_end);
-		
+		printf("[Barber] Finish \n\n");
+
 		state_bar = FREE;
 		//pthread_unlock_unlock(&mutex_cust);
 	}
@@ -136,18 +144,26 @@ void* custromer_action(void* id)
 		if(chair_num != 0)
 		{
 			pthread_mutex_lock(&wake_barber);
+			
+			printf("[Customer %d] Come in and sit \n\n", *ID);
 			chair_num--; // Sit in the waiting room first
 			check_barber();
+
 			pthread_mutex_unlock(&wake_barber);
 			
 			pthread_mutex_lock(&mutex_cust);
-			
+			printf("[Customer %d] Get into barber chair \n\n", *ID);
+
 			pthread_barrier_wait(&barrier_start);
+			printf("[Customer %d] Get haircut \n\n", *ID);
 			get_cut(); // Being cut.
 			pthread_barrier_wait(&barrier_end);
+
+			printf("[Customer %d] Finish \n\n", *ID);
+
 		}
 		else
-			printf("[Customer %d] The shop is full. I am leaving.", *ID);
+			printf("[Customer %d] The shop is full. I am leaving. \n\n", *ID);
 	}
 
 	return NULL;
@@ -173,6 +189,7 @@ int main(int argc, char *argv[])
 	/* Mutex initialization*/
 	pthread_mutex_init(&wake_barber, NULL);
 	pthread_mutex_init(&mutex_cust, NULL);
+	pthread_mutex_lock(&mutex_cust);
 	
 	/* Condition Initialization */
 	pthread_cond_init(&condition, NULL);
@@ -182,7 +199,7 @@ int main(int argc, char *argv[])
 	//pthread(&generator, NULL, customer_generator, NULL);
 	for(int i = 0; i < 10; i++)
 	{
-		pthread_create(&cust_thrs[i], NULL, custromer_action, (void*)&i);
+		pthread_create(&cust_thrs[i], NULL, custromer_action, (void*)&customer_ID[i]);
 	}
 	
 	/* threads termination */
