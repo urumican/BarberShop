@@ -48,13 +48,13 @@ void check_barber()
 		chair_num--; // Sit in the waiting room first
 		*/
 		/* Then try to wake barker*/
-		if(chair < 5)
+		if(chair_num < 5)
 		{
 			pthread_cond_signal(&condition);
 		}
 	//	pthread_mutex_unlock(&wake_barber);
 		pthread_mutex_unlock(&mutex_cust);
-		printf("[Custermer %d] Wake up the sleeping barber.\n\n", ID);
+		//printf("[Custermer %d] Wake up the sleeping barber.\n\n", ID);
 	}
 }
 
@@ -95,14 +95,14 @@ void get_cut()
 	sleep(sleep_time);
 }
 
-void* barber_action()
+void* barber_action(void *arg)
 {
 	while(1)
 	{
 		pthread_mutex_lock(&wake_barber);
-		if(chair_nu < 5) // It mean there is someone still waiting.
+		if(chair_num < 5) // It mean there is someone still waiting.
 		{ 
-			pthread_unlock_unlock(&mutex_cust);
+			pthread_mutex_unlock(&mutex_cust);
 		}
 		while(chair_num == 5) // No one's waiting in the room
 		{
@@ -113,13 +113,15 @@ void* barber_action()
 		pthread_mutex_unlock(&wake_barber);
 		
 		state_bar = WORK;
-		pthreat_barrier_wait(&barrier_start);
+		pthread_barrier_wait(&barrier_start);
 		cut();
-		pthreat_barrier_wiat(barrier_end);
+		pthread_barrier_wait(&barrier_end);
 		
 		state_bar = FREE;
 		//pthread_unlock_unlock(&mutex_cust);
 	}
+	
+	return NULL;
 }
 
 void* custromer_action(void* id)
@@ -140,26 +142,29 @@ void* custromer_action(void* id)
 			
 			pthread_mutex_lock(&mutex_cust);
 			
-			pthreat_barrier_wait(&barrier_start);
+			pthread_barrier_wait(&barrier_start);
 			get_cut(); // Being cut.
-			pthreat_barrier_wiat(barrier_end);
+			pthread_barrier_wait(&barrier_end);
 		}
 		else
 			printf("[Customer %d] The shop is full. I am leaving.", *ID);
 	}
+
+	return NULL;
 }
 
 int main(int argc, char *argv[])
 {
 	/* Initialization of threads state */
-	for(int i = 0; i < 50; i++)
+	/*for(int i = 0; i < 50; i++)
 	{
 		state_thrs[i] = UNDEF;
 	}
-	
+	*/
+
 	/* Threads definition */
 	pthread_t barber;
-	pthread_t generator;
+	//pthread_t generator;
 	
 	/* Barrier initialiazation */
 	pthread_barrier_init(&barrier_start, NULL, 2);
@@ -173,19 +178,19 @@ int main(int argc, char *argv[])
 	pthread_cond_init(&condition, NULL);
 	
 	/* threads activation */
-	pthread(&barber, NULL, barber_action, NULL);
+	pthread_create(&barber, NULL, barber_action, NULL);
 	//pthread(&generator, NULL, customer_generator, NULL);
 	for(int i = 0; i < 10; i++)
 	{
-		pthread(&cust_thread[k], NULL, custromer_action, (void*)&i);
+		pthread_create(&cust_thrs[i], NULL, custromer_action, (void*)&i);
 	}
 	
 	/* threads termination */
 	pthread_join(barber, NULL);
-	pthread_join(generator, NULL);
+	//pthread_join(generator, NULL);
 	for(int k = 0; k < 10; k++)
 	{
-		pthread_join(cust_thread[k]);
+		pthread_join(cust_thrs[k], NULL);
 	}
 	
 	/* mutex destruction */
