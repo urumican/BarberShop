@@ -16,8 +16,8 @@ pthread_mutex_t mutex_cust;
 pthread_cond_t condition; // I learned to use conditional variable.
 pthread_barrier_t barrier_start;
 pthread_barrier_t barrier_end;
-pthread_t cust_thrs[50];
-thread_ts state_thrs[50];
+pthread_t cust_thrs[10];
+//thread_ts state_thrs[50];
 
 int chair_num = NUM_CHAIR;
 barber_st state_bar = FREE;
@@ -63,6 +63,7 @@ void check_cust()
 	
 }
 
+/*
 void* customer_generator()
 {
 	while(1)
@@ -80,10 +81,19 @@ void* customer_generator()
 		
 	}
 }
+*/
 
-void cut(int ID)
+void cut()
+{
+	int sleep_time = (rand() % 3) > 0 ? (rand() % 3) : (rand() % 3 + 3);
+	sleep(sleep_time);
+}
 
 void get_cut()
+{
+	int sleep_time = (rand() % 3) > 0 ? (rand() % 3) : (rand() % 3 + 3);
+	sleep(sleep_time);
+}
 
 void* barber_action()
 {
@@ -109,7 +119,6 @@ void* barber_action()
 		
 		state_bar = FREE;
 		//pthread_unlock_unlock(&mutex_cust);
-		
 	}
 }
 
@@ -117,21 +126,27 @@ void* custromer_action(void* id)
 {
 	int* ID = (int*)id;
 	
-	if(chair_num != 0)
+	while(1)
 	{
-		pthread_mutex_lock(&wake_barber);
-		chair_num--; // Sit in the waiting room first
-		check_barber();
-		pthread_mutex_unlock(&wake_barber);
+		int sleep_time = (rand() % 3) > 0 ? (rand() % 3) : (rand() % 3 + 3);
+		sleep(sleep_time);
 		
-		pthread_mutex_lock(&mutex_cust);
-		
-		pthreat_barrier_wait(&barrier_start);
-		get_cut(); // Being cut.
-		pthreat_barrier_wiat(barrier_end);
+		if(chair_num != 0)
+		{
+			pthread_mutex_lock(&wake_barber);
+			chair_num--; // Sit in the waiting room first
+			check_barber();
+			pthread_mutex_unlock(&wake_barber);
+			
+			pthread_mutex_lock(&mutex_cust);
+			
+			pthreat_barrier_wait(&barrier_start);
+			get_cut(); // Being cut.
+			pthreat_barrier_wiat(barrier_end);
+		}
+		else
+			printf("[Customer %d] The shop is full. I am leaving.", *ID);
 	}
-	else
-		printf("[Customer %d] The shop is full. I am leaving.", *ID);
 }
 
 int main(int argc, char *argv[])
@@ -159,12 +174,16 @@ int main(int argc, char *argv[])
 	
 	/* threads activation */
 	pthread(&barber, NULL, barber_action, NULL);
-	pthread(&generator, NULL, customer_generator, NULL);
+	//pthread(&generator, NULL, customer_generator, NULL);
+	for(int i = 0; i < 10; i++)
+	{
+		pthread(&cust_thread[k], NULL, custromer_action, (void*)&i);
+	}
 	
 	/* threads termination */
 	pthread_join(barber, NULL);
 	pthread_join(generator, NULL);
-	for(int k = 0; k < 50; k++)
+	for(int k = 0; k < 10; k++)
 	{
 		pthread_join(cust_thread[k]);
 	}
