@@ -1,4 +1,3 @@
-#include<semaphore.h>
 #include<stdlib.h>
 #include<stdio.h>
 #include<unistd.h>
@@ -19,8 +18,8 @@ pthreat_barrier_t barrier_end;
 
 int chair_num = NUM_CHAIR;
 barber_st state_bar = FREE;
-customer_st state_cust;
-chair_st state_ch[NUM_CHAIR];
+//customer_st state_cust;
+//chair_st state_ch[NUM_CHAIR];
 
 
 /* We don't need an additional variable for the barber chair. */
@@ -67,7 +66,7 @@ void cut(int ID)
 
 void get_cut()
 
-void* barber()
+void* barber_action()
 {
 	while(1)
 	{
@@ -95,7 +94,7 @@ void* barber()
 	}
 }
 
-void* custromer(void* id)
+void* custromer_action(void* id)
 {
 	int* ID = (int*)id;
 	
@@ -118,9 +117,41 @@ void* custromer(void* id)
 
 int main(int argc, char *argv[])
 {
-	/* Initialize waiting chair */
-	for(int i = 0; i < NUM_CHAIR; i++)
-	{
-		state_ch[i] = OFF;
-	}
+	/* Threads definition */
+	pthread_t barber;
+	pthread_t generator;
+	
+	/* Barrier initialiazation */
+	pthread_barrier_init(&barrier_start, NULL, 2);
+	pthread_barrier_init(&barrier_end, NULL, 2);
+	
+	/* Mutex initialization*/
+	pthread_mutex_init(&wake_barber, NULL);
+	pthread_mutex_init(&mutex_cust, NULL);
+	
+	/* Condition Initialization */
+	pthread_cond_init(&condition, NULL);
+	
+	/* threads activation */
+	pthread(&barber, NULL, barber_action, NULL);
+	pthread(&generator, NULL, customer_generator, NULL);
+	
+	/* threads termination */
+	pthread_join(barber, NULL);
+	pthread_join(generator, NULL);
+	
+	/* mutex destruction */
+	pthread_mutex_destroy(&wake_barber);
+	pthread_mutex_destroy(&mutex_cust);
+	
+	/* condition destruction*/
+    	pthread_cond_destroy(&condition);
+    	
+    	/* barrier destruction */
+    	pthread_cond_destroy(&barrier_start);
+    	pthread_cond_destroy(&barrier_end);
+    	
+    	
+    	pthread_exit(NULL);
+    	return 0;
 }
