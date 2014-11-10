@@ -17,83 +17,34 @@ pthread_cond_t condition; // I learned to use conditional variable.
 pthread_barrier_t barrier_start;
 pthread_barrier_t barrier_end;
 pthread_t cust_thrs[10];
-//thread_ts state_thrs[50];
+
 
 int chair_num = NUM_CHAIR;
 int customer_ID[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 barber_st state_bar = FREE;
-//customer_st state_cust;
-//chair_st state_ch[NUM_CHAIR];
-
 
 /* We don't need an additional variable for the barber chair. */
-
 void check_barber()
 {
-	/*
-	if(state_bar == FREE)
-	{
-		pthreat_mutex_unlock(mutex_cust);
-		printf("[Customer %d] Get barber serving.\n\n", ID);
-	}
-	else if(state_bar == WORK)
-	{
-		//chair_num--;
-		printf("[Custermer %d] Start wating.\n\n", ID);
-	}
-	*/
 	if(state_bar == SLEEP)
 	{
-		/*
-		pthread_mutex_lock(&wake_barber);
-		chair_num--; // Sit in the waiting room first
-		*/
-		/* Then try to wake barker*/
 		if(chair_num < 5)
 		{
 			pthread_cond_signal(&condition);
 		}
-	//	pthread_mutex_unlock(&wake_barber);
-		
-		//printf("[Custermer %d] Wake up the sleeping barber.\n\n", ID);
 	}
 }
-
-void check_cust()
-{
-	
-}
-
-/*
-void* customer_generator()
-{
-	while(1)
-	{
-		int sleep_time = (rand() % 3) > 0 ? (rand() % 3) : (rand() % 3 + 3);
-		sleep(sleep_time);
-		
-		do{
-			int to_activate = rand() % 50 >= 0 ? (rand() % 50) : (rand() % 50 + 50);
-		}while(state_thrs[to_activate] == DEF)
-		
-		state_thrs[to_activate] = DEF;
-		pthread(&cust_thread[to_activate]，NULL, custromer_action, (void*)&to_activate);
-		
-		
-	}
-}
-*/
 
 void cut()
 {
-	int sleep_time = (rand() % 3) > 0 ? (rand() % 3) : (rand() % 3 + 3);
-	sleep(sleep_time);
+	//int sleep_time = (rand() % 3) > 0 ? (rand() % 3) : (rand() % 3 + 3);
+	sleep(3);
 }
 
 void get_cut()
 {
-	int sleep_time = (rand() % 3) > 0 ? (rand() % 3) : (rand() % 3 + 3);
-	sleep(sleep_time);
+	//int sleep_time = (rand() % 3) > 0 ? (rand() % 3) : (rand() % 3 + 3);
+	sleep(3);
 }
 
 void* barber_action(void *arg)
@@ -101,10 +52,7 @@ void* barber_action(void *arg)
 	while(1)
 	{
 		pthread_mutex_lock(&wake_barber);
-		//if(chair_num < 5) // It mean there is someone still waiting.
-		//{ 
-		//	pthread_mutex_unlock(&mutex_cust);
-		//}
+		
 		while(chair_num == 5) // No one's waiting in the room
 		{
 			state_bar = SLEEP;
@@ -112,7 +60,7 @@ void* barber_action(void *arg)
 			pthread_cond_wait(&condition, &wake_barber);
 			printf("[Barber] Wake \n\n");
 		}
-		chair_num++;
+		
 		printf("[Barber] Bring in one customer \n\n");
 		pthread_mutex_unlock(&mutex_cust);
 
@@ -122,11 +70,10 @@ void* barber_action(void *arg)
 		pthread_barrier_wait(&barrier_start);
 		printf("[Barber] Start cutting \n\n");
 		cut();
-		pthread_barrier_wait(&barrier_end);
 		printf("[Barber] Finish \n\n");
+		pthread_barrier_wait(&barrier_end);
 
 		state_bar = FREE;
-		//pthread_unlock_unlock(&mutex_cust);
 	}
 	
 	return NULL;
@@ -144,23 +91,24 @@ void* custromer_action(void* id)
 		if(chair_num != 0)
 		{
 			pthread_mutex_lock(&wake_barber);
-			
-			printf("[Customer %d] Come in and sit \n\n", *ID);
 			chair_num--; // Sit in the waiting room first
+
+			printf("[Customer %d] Come in and sit. Num of seat %d \n\n", *ID, chair_num);
 			check_barber();
 
 			pthread_mutex_unlock(&wake_barber);
 			
 			pthread_mutex_lock(&mutex_cust);
+			chair_num++;
 			printf("[Customer %d] Get into barber chair \n\n", *ID);
 
 			pthread_barrier_wait(&barrier_start);
 			printf("[Customer %d] Get haircut \n\n", *ID);
 			get_cut(); // Being cut.
+			printf("[Customer %d] Finish \n\n", *ID);
 			pthread_barrier_wait(&barrier_end);
 
-			printf("[Customer %d] Finish \n\n", *ID);
-
+			printf("[Customer %d] Go home. Num of seat %d \n\n", *ID, chair_num);
 		}
 		else
 			printf("[Customer %d] The shop is full. I am leaving. \n\n", *ID);
@@ -171,13 +119,6 @@ void* custromer_action(void* id)
 
 int main(int argc, char *argv[])
 {
-	/* Initialization of threads state */
-	/*for(int i = 0; i < 50; i++)
-	{
-		state_thrs[i] = UNDEF;
-	}
-	*/
-
 	/* Threads definition */
 	pthread_t barber;
 	//pthread_t generator;
